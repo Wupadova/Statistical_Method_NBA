@@ -29,8 +29,12 @@ X_test_net <- data_net[!sample, ] %>% as.matrix()
 ########################################################################################
 ########################################################################################
 # find the best model (with cross-validation)
-lasso_fit <- cv.glmnet(as.matrix(X_train), as.matrix(Y_train), alpha=1)  # k-fold is selected randomly
+lasso_fit <- cv.glmnet(X_train, Y_train)  # k-fold is selected randomly
+
 plot(lasso_fit)
+plot(lasso_fit$glmnet.fit,xvar= 'lambda' ,label = TRUE)
+
+
 str(lasso_fit)
 lambda_lasso <- lasso_fit$lambda.min
 
@@ -39,10 +43,13 @@ coef_lasso
 
 
 
-model_lasso <- glmnet(X_train, Y_train, lambda = lambda_lasso, alpha=1)
-pred_lasso <- predict(model_lasso, as.matrix(X_test), alpha=1)
+model_lasso <- glmnet(X_train, Y_train, lambda = lambda_lasso)
+pred_lasso <- predict(model_lasso, X_test, alpha=1)
 rel_error_lasso <- abs(pred_lasso - Y_test) / Y_test
 rel_error_lasso
+str(model_lasso)
+
+
 
 # get the portion of the predictions that have an error less than 30 percent
 ratio_lasso <- length(rel_error_lasso[rel_error_lasso< 0.4]) / length(Y_test)
@@ -74,6 +81,9 @@ abline(h=mse_min_default, v=log(lambda_ridge_default),col= 'blue', lty=2)  # sel
 abline(h=mse_min_grid, v=log(lambda_ridge_grid),col= 'green', lty=2)  # selected by defined grid of lambda
 legend(17, 185, legend=c("default", "search_grid"),
        col=c("blue", "green"), lty=1:2, cex=0.8)
+
+
+plot(cv_ridge_grid$glmnet.fit, xvar = 'lambda', label = TRUE)
 
 # We can get a better lambda
 coef_ridge <- coef(cv_ridge_grid)    
@@ -109,6 +119,7 @@ model_net <- train(
 alpha_net <- model_net$bestTune[1]
 lambda_net <- model_net$bestTune[2]
 
+plot(model_net$finalModel, xvar= 'lambda', label = TRUE)
 # Model coefficients
 coef_net <- coef(model_net$finalModel, model_net$bestTune$lambda)
 # Make predictions
@@ -148,7 +159,7 @@ alasso_cv <- cv.glmnet(x = X_train, y = Y_train,
                         ## prevalidated array is returned
                         keep = TRUE)
 ## Penalty vs CV MSE plot
-plot(alasso_cv)
+plot(alasso_cv$glmnet.fit, xvar = 'lambda', label = TRUE)
 
 lambda_alasso <- alasso_cv$lambda.min
 coef_adp <- coef(alasso_cv, s = alasso_cv$lambda.min)
@@ -192,6 +203,7 @@ data_compare[data_compare$Tm_PHO == 1, ]   # get all the players of TOR
 mean_salary <- mean(data_compare$salary)
 
 data_compare[data_compare$Pos_SF == 1, ]   # SF
+mean(data_compare[data_compare$Pos_SF == 1, ]$Age)
 
 mean(data_compare[data_compare$FT. > 0.85, ]$salary)
 mean(data_compare$FT.)
@@ -210,5 +222,27 @@ mse_min_grid
 mse_net
 mse_ridge
 mse_adp
+
+par(mfrow = c(2, 2))
+plot(cv_ridge_grid$glmnet.fit, xvar = 'lambda', label = TRUE, main = 'Ridge', cex.main = 1)
+plot(lasso_fit$glmnet.fit,xvar= 'lambda' ,label = TRUE, main = 'LASSO', cex.main = 1)
+plot(model_net$finalModel, xvar= 'lambda', label = TRUE, main = 'Elastic Net', cex.main = 1)
+plot(alasso_cv$glmnet.fit, xvar = 'lambda', label = TRUE, main = 'Adaptive LASSO', cex.main = 1)
+
+
+plot(cv_ridge_grid, main = 'Ridge', cex.main = 1)
+plot(lasso_fit, main = 'LASSO', cex.main = 1)
+plot(alasso_cv, main = 'Adaptive LASSO', cex.main = 1)
+
+
+par(mfrow = c(1, 1))
+
+
+plot(cv_ridge_grid)
+plot(lasso_fit)
+plot(model_net)
+plot(alasso_cv)
+
+
 
 rm(list = ls())
